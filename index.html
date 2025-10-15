@@ -6,12 +6,10 @@
     <title>Mental Model Matrix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Chosen Palette: Warm Neutrals (Stone, Muted Teal) -->
-    <!-- Application Structure Plan: A single-page dashboard with an introductory header, a responsive grid of interactive cards for each of the 5 mental models, and a final interactive assessment section. The user can click cards to see details and use sliders to rate each model's importance, which dynamically updates a radar chart. This structure was chosen to first present the information clearly (cards) and then allow for direct, visual self-assessment (chart/sliders), turning a static list into a personal diagnostic tool. -->
-    <!-- Visualization & Content Choices: 1. Mental Models -> Goal: Organize/Inform -> Presentation: Interactive HTML/CSS Cards -> Interaction: Click to expand/collapse details -> Justification: Allows progressive disclosure of information without cluttering the main view. 2. Model Prioritization -> Goal: Compare/Analyze -> Presentation: Radar Chart -> Interaction: Linked sliders update chart data points in real-time -> Justification: A radar chart is excellent for visualizing multi-variable profiles and showing imbalances or strengths across different categories, directly addressing the prompt's question of which model is 'most central'. Library: Chart.js (Canvas). -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f5f5f4;
@@ -20,10 +18,8 @@
             position: relative;
             width: 100%;
             max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+            margin: 0 auto;
             height: 300px;
-            max-height: 400px;
         }
         @media (min-width: 768px) {
             .chart-container {
@@ -38,6 +34,10 @@
         .details.open {
             max-height: 500px;
         }
+        /* Accessibility: Ensure focus styles */
+        .card:focus-within {
+            outline: 2px solid #0d9488;
+        }
     </style>
 </head>
 <body class="text-stone-800">
@@ -48,29 +48,29 @@
         </header>
 
         <main>
-            <section id="models" class="mb-16">
-                 <div class="text-center max-w-3xl mx-auto mb-12">
-                    <h2 class="text-3xl font-bold mb-4">Core Operating Principles</h2>
-                    <p class="text-stone-600">This dashboard surfaces the implicit mental models you use to decide what to ship and when. Each card represents a core principle inferred from your project patterns. Click on any card to explore the concept and its application in more detail.</p>
+            <section id="models" class="mb-16" aria-labelledby="models-heading">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 id="models-heading" class="text-3xl font-bold mb-4">Core Operating Principles</h2>
+                    <p class="text-stone-600">This dashboard surfaces the implicit mental models you use to decide what to ship and when. Each card represents a core principle inferred from your projects.</p>
                 </div>
-                <div id="model-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div id="model-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" role="grid">
                 </div>
             </section>
 
-            <section id="assessment" class="bg-white rounded-lg shadow-lg p-6 md:p-10">
+            <section id="assessment" class="bg-white rounded-lg shadow-lg p-6 md:p-10" aria-labelledby="assessment-heading">
                 <div class="text-center max-w-3xl mx-auto mb-10">
-                    <h2 class="text-3xl font-bold mb-4">Assess Your Framework</h2>
-                    <p class="text-stone-600">Use the sliders below to rate how central each model is to your current decision-making process. The visualization will update in real-time to reflect your unique "shipping signature," providing a clear picture of your orchestrator system.</p>
+                    <h2 id="assessment-heading" class="text-3xl font-bold mb-4">Assess Your Framework</h2>
+                    <p class="text-stone-600">Use the sliders below to rate how central each model is to your current decision-making process. The visualization will update in real-time to reflect your inputs.</p>
                 </div>
 
                 <div class="flex flex-col lg:flex-row items-center justify-center gap-10">
                     <div class="w-full lg:w-1/2">
-                        <div id="controls" class="space-y-6">
+                        <div id="controls" class="space-y-6" role="group" aria-label="Mental model sliders">
                         </div>
                     </div>
                     <div class="w-full lg:w-1/2">
                         <div class="chart-container">
-                            <canvas id="radarChart"></canvas>
+                            <canvas id="radarChart" role="img" aria-label="Radar chart visualizing mental model centrality scores"></canvas>
                         </div>
                     </div>
                 </div>
@@ -83,86 +83,112 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const modelsData = [
-                {
-                    id: 'pareto',
-                    title: 'The Pareto Principle',
-                    short: 'The 80/20 rule. Focus on the small set of features that produce most of the value.',
-                    details: 'You instinctively focus on the high-impact 20% of work that delivers 80% of the results. This is evident in your rapid prototyping approach seen in projects like <strong>CodeTuneStudio</strong>, where you trim the fat before aiming for perfection. It\'s about maximizing value with minimal, focused effort.',
-                    icon: '🎯'
-                },
-                {
-                    id: 'feedback',
-                    title: 'Feedback Loops',
-                    short: 'Design systems to talk back. Rely on tight iteration to reveal what matters.',
-                    details: 'Your systems are built to communicate their status. Whether it\'s CI/CD pipelines, the monitoring dashboards in <strong>Trading Bot Swarm</strong>, or Telegram signals from <strong>CryptoCommander</strong>, you rely on constant, automated feedback to guide your next move. This accelerates learning and course correction.',
-                    icon: '🔄'
-                },
-                {
-                    id: 'compounding',
-                    title: 'Compounding Systems',
-                    short: 'Treat each project as an asset that grows in value and utility over time.',
-                    details: 'You don\'t see shipped projects as endpoints. Instead, each becomes a building block. Reusable templates, configurable agents from the <strong>Trading Bot Swarm</strong>, or curated datasets are assets that compound, making future projects faster and more powerful to build.',
-                    icon: '📈'
-                },
-                {
-                    id: 'risk',
-                    title: 'Risk Surface Minimization',
-                    short: 'Reduce exposure through isolation, modularity, and clear rollback paths.',
-                    details: 'Your architecture prioritizes stability and control. By preferring modular deployments, ensuring clear rollback paths, and maintaining robust observability, you actively minimize the "blast radius" of any potential failure. This is about shipping with confidence, not just speed.',
-                    icon: '🛡️'
-                },
-                {
-                    id: 'orchestration',
-                    title: 'Autonomous Orchestration',
-                    short: 'Design ecosystems that self-coordinate, a form of meta-delegation.',
-                    details: 'This is a higher-level form of thinking where you design systems that manage other systems. Bots talking to bots, services triggering each other—as seen in the design of the <strong>Trading Bot Swarm</strong>—is meta-delegation. It\'s about building an ecosystem that runs itself, freeing you to focus on the next strategic goal.',
-                    icon: '🤖'
+        'use strict'; // Enable strict mode for better error handling
+
+        // Data model: Moved outside for reusability
+        const modelsData = [
+            {
+                id: 'pareto',
+                title: 'The Pareto Principle',
+                short: 'The 80/20 rule. Focus on the small set of features that produce most of the value.',
+                details: 'You instinctively focus on the high-impact 20% of work that delivers 80% of the results. This is evident in your rapid prototyping approach seen in projects like <strong>Trading Bot Swarm</strong>.',
+                icon: '🎯'
+            },
+            {
+                id: 'feedback',
+                title: 'Feedback Loops',
+                short: 'Design systems to talk back. Rely on tight iteration to reveal what matters.',
+                details: 'Your systems are built to communicate their status. Whether it\'s CI/CD pipelines, the monitoring dashboards in <strong>Trading Bot Swarm</strong>, or Telegram signals from <strong>Telegram Trading Bot</strong>, feedback is your guide.',
+                icon: '🔄'
+            },
+            {
+                id: 'compounding',
+                title: 'Compounding Systems',
+                short: 'Treat each project as an asset that grows in value and utility over time.',
+                details: 'You don\'t see shipped projects as endpoints. Instead, each becomes a building block. Reusable templates, configurable agents from the <strong>Trading Bot Swarm</strong>, and modular architectures all reflect this mindset.',
+                icon: '📈'
+            },
+            {
+                id: 'risk',
+                title: 'Risk Surface Minimization',
+                short: 'Reduce exposure through isolation, modularity, and clear rollback paths.',
+                details: 'Your architecture prioritizes stability and control. By preferring modular deployments, ensuring clear rollback paths, and maintaining robust observability, you actively minimize risk in complex systems.',
+                icon: '🛡️'
+            },
+            {
+                id: 'orchestration',
+                title: 'Autonomous Orchestration',
+                short: 'Design ecosystems that self-coordinate, a form of meta-delegation.',
+                details: 'This is a higher-level form of thinking where you design systems that manage other systems. Bots talking to bots, services triggering each other—as seen in the design of <strong>Trading Bot Swarm</strong>.',
+                icon: '🤖'
+            }
+        ];
+
+        // Constants for initial scores
+        const INITIAL_SCORE = 5;
+        const initialScores = new Array(modelsData.length).fill(INITIAL_SCORE);
+
+        // DOM elements (cached for performance)
+        const modelGrid = document.getElementById('model-grid');
+        const controlsContainer = document.getElementById('controls');
+        const radarChartCanvas = document.getElementById('radarChart');
+
+        // Function to create a model card (modularized)
+        function createModelCard(model) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg shadow-md p-6 cursor-pointer transform hover:scale-105 transition-transform duration-300 card';
+            card.setAttribute('tabindex', '0'); // Make focusable for accessibility
+            card.setAttribute('aria-expanded', 'false'); // ARIA for expandable content
+            card.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <span class="text-3xl mr-4" aria-hidden="true">${model.icon}</span>
+                    <h3 class="text-xl font-bold text-stone-800">${model.title}</h3>
+                </div>
+                <p class="text-stone-600 mb-4">${model.short}</p>
+                <div class="details text-sm text-stone-500 space-y-2" aria-hidden="true">
+                    <p>${model.details}</p>
+                </div>
+            `;
+            // Event listener for toggle (accessible via keyboard)
+            const toggleDetails = () => {
+                const details = card.querySelector('.details');
+                const isOpen = details.classList.toggle('open');
+                card.setAttribute('aria-expanded', isOpen);
+                details.setAttribute('aria-hidden', !isOpen);
+            };
+            card.addEventListener('click', toggleDetails);
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleDetails();
                 }
-            ];
-
-            const modelGrid = document.getElementById('model-grid');
-            const controlsContainer = document.getElementById('controls');
-            let initialScores = modelsData.map(() => 5);
-
-            modelsData.forEach((model, index) => {
-                const card = document.createElement('div');
-                card.className = 'bg-white rounded-lg shadow-md p-6 cursor-pointer transform hover:scale-105 transition-transform duration-300';
-                card.innerHTML = `
-                    <div class="flex items-center mb-4">
-                        <span class="text-3xl mr-4">${model.icon}</span>
-                        <h3 class="text-xl font-bold text-stone-800">${model.title}</h3>
-                    </div>
-                    <p class="text-stone-600 mb-4">${model.short}</p>
-                    <div class="details text-sm text-stone-500 space-y-2">
-                        <p>${model.details}</p>
-                    </div>
-                `;
-                modelGrid.appendChild(card);
-                card.addEventListener('click', () => {
-                    card.querySelector('.details').classList.toggle('open');
-                });
-
-                const control = document.createElement('div');
-                control.innerHTML = `
-                    <label for="${model.id}-slider" class="block text-md font-medium text-stone-700">${model.title}</label>
-                    <div class="flex items-center gap-4 mt-2">
-                        <input type="range" id="${model.id}-slider" name="${model.id}" min="0" max="10" value="5" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-teal-600 slider">
-                        <span id="${model.id}-value" class="font-bold text-teal-700 text-lg w-8 text-center">${initialScores[index]}</span>
-                    </div>
-                `;
-                controlsContainer.appendChild(control);
             });
+            return card;
+        }
 
-            const ctx = document.getElementById('radarChart').getContext('2d');
+        // Function to create a control slider (modularized)
+        function createControl(model, index) {
+            const control = document.createElement('div');
+            control.innerHTML = `
+                <label for="${model.id}-slider" class="block text-md font-medium text-stone-700">${model.title}</label>
+                <div class="flex items-center gap-4 mt-2">
+                    <input type="range" id="${model.id}-slider" name="${model.id}" min="0" max="10" value="${INITIAL_SCORE}" class="slider w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-teal-600" aria-valuemin="0" aria-valuemax="10" aria-valuenow="${INITIAL_SCORE}" aria-labelledby="${model.id}-label">
+                    <span id="${model.id}-value" class="font-bold text-teal-700 text-lg w-8 text-center" aria-live="polite">${INITIAL_SCORE}</span>
+                </div>
+            `;
+            return control;
+        }
+
+        // Function to initialize the radar chart
+        function initializeRadarChart() {
+            const ctx = radarChartCanvas.getContext('2d');
             const radarChart = new Chart(ctx, {
                 type: 'radar',
                 data: {
-                    labels: modelsData.map(m => m.title.split(' ')),
+                    labels: modelsData.map(m => m.title),
                     datasets: [{
                         label: 'Centrality Score',
-                        data: initialScores,
+                        data: [...initialScores], // Shallow copy to avoid mutation issues
                         backgroundColor: 'rgba(13, 148, 136, 0.2)',
                         borderColor: 'rgb(13, 148, 136)',
                         pointBackgroundColor: 'rgb(13, 148, 136)',
@@ -172,6 +198,7 @@
                     }]
                 },
                 options: {
+                    responsive: true,
                     maintainAspectRatio: false,
                     scales: {
                         r: {
@@ -204,17 +231,44 @@
                     }
                 }
             });
+            return radarChart;
+        }
 
-            const sliders = document.querySelectorAll('.slider');
+        // Main initialization function
+        function init() {
+            // Create cards
+            modelsData.forEach(model => {
+                modelGrid.appendChild(createModelCard(model));
+            });
+
+            // Create controls
+            modelsData.forEach((model, index) => {
+                controlsContainer.appendChild(createControl(model, index));
+            });
+
+            // Initialize chart
+            const radarChart = initializeRadarChart();
+
+            // Attach slider event listeners
+            const sliders = document.querySelectorAll('input[type="range"]');
             sliders.forEach((slider, index) => {
                 slider.addEventListener('input', (event) => {
-                    const newValue = event.target.value;
-                    document.getElementById(`${modelsData[index].id}-value`).textContent = newValue;
+                    const newValue = parseInt(event.target.value, 10);
+                    const valueSpan = document.getElementById(`${modelsData[index].id}-value`);
+                    valueSpan.textContent = newValue;
+                    slider.setAttribute('aria-valuenow', newValue);
                     radarChart.data.datasets[0].data[index] = newValue;
                     radarChart.update();
                 });
             });
-        });
+        }
+
+        // Run initialization on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
     </script>
 </body>
 </html>
